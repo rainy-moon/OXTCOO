@@ -3,16 +3,16 @@
 
 using namespace std;
 
-class node {
+
+
+class pipe {
 public:
-	int no;
-	vector<edge> e;
+	int cost;
+	int channel[8] = { 0,0,0,0,0,0,0,0 };
 
-	node(int no) {
-		this->no = no;
-	};
-
-
+	pipe(int cost) {
+		this->cost = cost;
+	}
 };
 class edge {
 public:
@@ -29,15 +29,6 @@ public:
 		return this->nodeNo1 == node1 ? this->nodeNo2 : this->nodeNo1;
 	}
 };
-class pipe {
-public:
-	int cost;
-	int channel[8] = { 0,0,0,0,0,0,0,0 };
-
-	pipe(int cost) {
-		this->cost = cost;
-	}
-};
 class task {
 public:
 	int from;
@@ -51,7 +42,17 @@ public:
 		this->power = power;
 	}
 };
+class node {
+public:
+	int no;
+	vector<edge> e;
 
+	node(int no) {
+		this->no = no;
+	};
+
+
+};
 int main() {
 	printf("hello world");
 }
