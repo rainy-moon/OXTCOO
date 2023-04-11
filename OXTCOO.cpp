@@ -2,9 +2,10 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <set>
 using namespace std;
 int P;//任务数量
-int N, M, T, D; //节点数量、管道数量、信道数量、衰减距离
+int N, M, T = 80, D; //节点数量、管道数量、信道数量、衰减距离
 int E = 0; //总边数
 int I = 0; //岛数量
 
@@ -24,6 +25,9 @@ class pipe {
 	void initpipe(int id, int cost) {
         this->id = id;
         this->cost = cost;
+        for (int i = 0; i < 80; i++) {
+            channel[i] = -1;
+        }
     }
 };
 class edge {
@@ -31,10 +35,15 @@ class edge {
     int nodeNo1;
     int nodeNo2;
     vector<int> p;
+    set<int> PossibleChannel;
     edge() {}
 	void initedge(int nodeNo1, int nodeNo2) {
         this->nodeNo1 = nodeNo1;
         this->nodeNo2 = nodeNo2;
+        PossibleChannel.clear();
+        for (int i = 0; i < T; i++) {
+            PossibleChannel.insert(i);
+        }
     };
 
     int another(int node1) {
@@ -55,6 +64,7 @@ class task {
         this->from = from;
         this->to = to;
         this->power = power;
+        for (int i = 0; i < 80; i++) possibleChannel[i] = true;
     }
 };
 task tasks[10005];
@@ -94,11 +104,11 @@ class treeNode {
    public:
     treeNode() { parent = -1; }
     int parent;
-    int deepth;
+    int deepth;//used as the record of the edge in bfs_find_road
 };
 
 
-task tasks[10005];
+//task tasks[10005];
 vector<pipe> pipes;
 node nodes[5005];
 
@@ -266,6 +276,7 @@ void initData() {
     for (int i = 0; i < M; i++) {
         int si, ti, di;
         scanf("%d %d %d", &si, &ti, &di);
+        if(di>D) continue;
         pipes[i].initpipe(i, di);
         if (nodes[si].getEdge(ti) == -1) {
             edges[E].initedge(si, ti);
@@ -279,7 +290,64 @@ void initData() {
         tasks[i].inittask(i, sj, tj, D);
     }
 }
+void bfs_Find_Path(task t) {
+    memset(nodeFlag, false, T * sizeof(bool));
+    queue<int> q;
+    vector<int> blocknode;//阻塞节点记录
+    q.push(t.from);
+    queue<bool[80]> qpossible;
+    qpossible.push(t.possibleChannel);
+    tree[t.from].parent = -1;
+    while (!q.empty()) { 
+        nodeFlag[q.front()] = true;
+        vector<int> tempe = nodes[q.front()].e;
+        for (int i = 0; i < tempe.size(); i++) {
+            if (!nodeFlag[edges[tempe[i]].another(q.front())]) {
+                continue;
+            }
+            else if (edges[tempe[i]].PossibleChannel.size() == 0) {
+                blocknode.push_back(tempe[i]);
+                q.pop();
+                qpossible.pop();
+            }
+            else {
+                bool hava_edge = false;
+                for (int j = 0; j < T; j++) {
+					if ( (qpossible.front())[i] && edges[tempe[i]].PossibleChannel.count(i) ) {
+						(qpossible.front())[i] = true;
+						hava_edge = true;
+                        int next = edges[i].another(q.front());
+					}
+                    else {
+                        (qpossible.front())[i] = false;
+                    }
+                }
+                if (hava_edge) {
+                    int next = edges[i].another(q.front());
+					tree[next].parent = q.front();
+                    tree[next].deepth = i;
+                    if (next == t.to) {
+                        Finded_Path(t,qpossible.front());
+                        return;
+                    }
+                    else {
+                        q.push(next);
+                        qpossible.push(qpossible.front());
+                        nodeFlag[next] = true;
+                        q.pop();
+                        qpossible.pop();
+                    }
+                }
+                else {
+					blocknode.push_back(tempe[i]);
+					q.pop();
+					qpossible.pop();
+                }
+            }
+        }
 
+    }
+}
 int main() {
     initData();
     creatTree();
