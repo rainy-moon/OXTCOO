@@ -57,14 +57,15 @@ class task {
     int from;
     int to;
     int power;
-	bool possibleChannel[80];
+	vector<bool> possibleChannel;
     task() {}
 	void inittask(int id, int from, int to, int power) {
+        possibleChannel.resize(T);
         this->id = id;
         this->from = from;
         this->to = to;
         this->power = power;
-        for (int i = 0; i < 80; i++) possibleChannel[i] = true;
+        for (int i = 0; i < T; i++) possibleChannel[i] = true;
     }
 };
 task tasks[10005];
@@ -290,40 +291,60 @@ void initData() {
         tasks[i].inittask(i, sj, tj, D);
     }
 }
+
+void Finded_Path(task t,vector<bool> possible_channel) {
+
+}
+
+int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) { //不能改变possible_channel
+    return 1;
+}
+
+int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel) {
+    return 1;
+}
+
 void bfs_Find_Path(task t) {
     memset(nodeFlag, false, T * sizeof(bool));
-    queue<int> q;
+    queue<int> q;//BFS节点队列
     vector<int> blocknode;//阻塞节点记录
+    vector<vector<bool> > blocknode_possible_channel;//到阻塞节点处可用信道记录
     q.push(t.from);
-    queue<bool[80]> qpossible;
+    queue<vector<bool> > qpossible;//BFS节点可用信道队列
     qpossible.push(t.possibleChannel);
     tree[t.from].parent = -1;
+    nodeFlag[t.from] = true;
+    //加死循环直到找到路径？
     while (!q.empty()) { 
-        nodeFlag[q.front()] = true;
         vector<int> tempe = nodes[q.front()].e;
+        vector<bool> tempp = qpossible.front();//记录走到当前位置还可用的信道
+        int have_edge = 1;
         for (int i = 0; i < tempe.size(); i++) {
-            if (!nodeFlag[edges[tempe[i]].another(q.front())]) {
+            if (nodeFlag[edges[tempe[i]].another(q.front())]) {
+                
                 continue;
             }
-            else if (edges[tempe[i]].PossibleChannel.size() == 0) {
-                blocknode.push_back(tempe[i]);
-                q.pop();
-                qpossible.pop();
-            }
+            //else if (edges[tempe[i]].PossibleChannel.size() == 0) {
+            //    if (Channel_Communicate(tempp, i, 1) < 0) {//当前可用信道、边、协商伦次（深度）
+            //        //如果协商失败
+            //        blocknode.push_back(tempe[i]);
+            //        blocknode_possible_channel.push_back(qpossible.front());
+            //        q.pop();
+            //        qpossible.pop();
+            //    }
+            //    else {
+            //        //协商成功
+            //    }
+            //}
             else {
-                bool hava_edge = false;
+                bool hava_channel = false;
+                
                 for (int j = 0; j < T; j++) {
-					if ( (qpossible.front())[i] && edges[tempe[i]].PossibleChannel.count(i) ) {
-						(qpossible.front())[i] = true;
-						hava_edge = true;
-                        int next = edges[i].another(q.front());
-					}
-                    else {
-                        (qpossible.front())[i] = false;
-                    }
+                    if ((qpossible.front())[i] = (qpossible.front())[i] & edges[tempe[i]].PossibleChannel.count(i))
+                        hava_channel = true;
                 }
-                if (hava_edge) {
-                    int next = edges[i].another(q.front());
+                if (hava_channel) {
+                    int next = edges[tempe[i]].another(q.front());
 					tree[next].parent = q.front();
                     tree[next].deepth = i;
                     if (next == t.to) {
@@ -331,32 +352,49 @@ void bfs_Find_Path(task t) {
                         return;
                     }
                     else {
+                        have_edge = 2;
                         q.push(next);
-                        qpossible.push(qpossible.front());
+                        vector<bool> temp = qpossible.front();
+                        qpossible.push(temp);
                         nodeFlag[next] = true;
-                        q.pop();
-                        qpossible.pop();
                     }
                 }
                 else {
-					blocknode.push_back(tempe[i]);
-					q.pop();
-					qpossible.pop();
+                    if (Channel_Communicate(tempp, tempe[i], 1) < 0) {//当前可用信道、边、协商伦次（深度）
+                    //如果协商失败
+                        if (have_edge == 1) have_edge = 0;
+                    }
+                    else {
+                        //协商成功
+                    }
                 }
             }
+            
         }
-
+		if (!have_edge) {
+			blocknode.push_back(q.front());
+			blocknode_possible_channel.push_back(tempp);
+		}
+		q.pop();
+		qpossible.pop();
     }
+    //当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
+    Add_Pipe(blocknode,blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
+    //加边后从加了边的堵塞节点恢复搜索
+
 }
 int main() {
     initData();
     creatTree();
     findBridge();
     divideNode();
-    cout << "\ntest********" << endl;
+    cout << "\ntest dividenode********" << endl;
     for (int i = 0; i < islands.size(); i++){
         cout << "island id: " << i << endl;
         testPrint(islands[i]);
         cout << endl;
     }
+    cout << "\ntest bfs_find_path********" << endl;
+    for (int i = 0; i < P; i++)
+        bfs_Find_Path(tasks[i]);
 }
