@@ -4,10 +4,11 @@
 #include <list>
 #include <queue>
 #include <set>
+#include <stack>
 #include <vector>
 using namespace std;
-int P;//任务数量
-int N, M, T = 80, D; //节点数量、管道数量、信道数量、衰减距离
+
+int N, M, T = 80, P, D; //节点数量、管道数量、任务数量、信道数量、衰减距离
 int E = 0; //总边数
 int I = 0; //岛数量
 
@@ -18,9 +19,11 @@ class node;
 class island;
 class treeNode;
 int anotherIsland(edge& e, int islandId);
+
 class pipe {
    public:
     int id;
+    int edgeId;
     int cost;
     int channel[80];
     pipe() {}
@@ -43,7 +46,7 @@ class edge {
         this->nodeNo1 = nodeNo1;
         this->nodeNo2 = nodeNo2;
         PossibleChannel.clear();
-        for (int i = 0; i < T; i++) {
+        for (int i = 0; i < P; i++) {
             PossibleChannel.insert(i);
         }
     };
@@ -60,16 +63,18 @@ class task {
     int to;
     int power;
     int channel;
-	vector<bool> possibleChannel;
+    vector<int> path;
+    vector<bool> possibleChannel;
+    vector<int> amplifier;
     task() {}
     void inittask(int id, int from, int to, int power) {
-        possibleChannel.resize(T);
+        possibleChannel.resize(P);
         this->id = id;
         this->from = from;
         this->to = to;
         this->power = power;
         channel = -1;
-        for (int i = 0; i < T; i++) possibleChannel[i] = true;
+        for (int i = 0; i < P; i++) possibleChannel[i] = true;
     }
 };
 task tasks[10005];
@@ -140,6 +145,7 @@ int anotherIsland(edge& e, int islandId) {
     return nodes[e.nodeNo1].islandId == islandId ? nodes[e.nodeNo2].islandId
                                                  : nodes[e.nodeNo1].islandId;
 }
+//find bridge
 void creatTree() {
     // init
     for (int i = 0; i < 5000; i++) {
@@ -148,7 +154,6 @@ void creatTree() {
         notBridge[i] = false;
     }
     // creat tree by bfs
-    // cout << "\n******creat tree start:******" << endl;
     queue<int> q;
     for (int i = 0; i < N; i++) {
         if (nodeFlag[i] == false) {
@@ -156,7 +161,6 @@ void creatTree() {
             nodeFlag[i] = true;
             while (!q.empty()) {
                 int parent = q.front();
-                // cout << "now node id is :" << parent << endl;
                 q.pop();
                 for (int j = 0; j < nodes[parent].e.size(); j++) {
                     int idEdge = nodes[parent].e[j];
@@ -167,25 +171,20 @@ void creatTree() {
                         tree[child].deepth = tree[parent].deepth + 1;
                         nodeFlag[child] = true;
                         edgeFlag[idEdge] = true;
-                        // cout << "child: " << child
-                        //  << " deepth: " << tree[child].deepth << endl;
                     }
                 }
             }
         }
     }
-    // cout << "******end tree creat******" << endl;
 }
 void findBridge() {
     // judge bridge by find circle
     // add a edge to tree for a circle
-    // cout << "\n******start find bridge:******" << endl;
     for (int i = 0; i < E; i++) {
         if (!edgeFlag[i]) {
             // cout << "edge id:" << i;
             int nodea = edges[i].nodeNo1;
             int nodeb = edges[i].nodeNo2;
-            // cout << "  node:" << nodea << "  " << nodeb << endl;
             notBridge[nodes[nodea].getEdge(nodeb)] = true;
             if (tree[nodea].deepth > tree[nodeb].deepth) {
                 swap(nodea, nodeb);
@@ -193,51 +192,34 @@ void findBridge() {
             while (tree[nodea].deepth != tree[nodeb].deepth) {
                 notBridge[nodes[nodeb].getEdge(tree[nodeb].parent)] = true;
                 nodeb = tree[nodeb].parent;
-                // cout << "new nodeb: " << nodeb << endl;
             }
             while (nodea != nodeb) {
                 notBridge[nodes[nodea].getEdge(tree[nodea].parent)] = true;
                 nodea = tree[nodea].parent;
                 notBridge[nodes[nodeb].getEdge(tree[nodeb].parent)] = true;
                 nodeb = tree[nodeb].parent;
-                // cout << "new nodea&nodeb: " << nodea << " " << nodeb << endl;
             }
-            // cout << "LCA: " << nodea << endl;
         }
     }
     for (int i = 0; i < E; i++) {
         if (notBridge[i] == false) {
             bridges.push_back(i);
-            // cout << "bridge id :" << i<<endl;
-            // cout << "bridge:" << edges[i].nodeNo1 << " " << edges[i].nodeNo2
-            //<< endl;
         }
     }
-    // cout << "******end of find bridge******" << endl;
 }
 void divideNode() {
-    // cout << "\n******strat divide node******" << endl;
     //  init flags
-    for (int i = 0; i < N; i++) {
-        nodeFlag[i] = false;
-    }
-    for (int i = 0; i < E; i++) {
-        edgeFlag[i] = false;
-    }
+    memset(nodeFlag, false, N * sizeof(bool));
+    memset(edgeFlag, false, E * sizeof(bool));
     for (int i = 0; i < bridges.size(); i++) {
         edgeFlag[bridges[i]] = true;
     }
     // divide node by bfs
     for (int i = 0; i < bridges.size(); i++) {
         int node[2] = {edges[bridges[i]].nodeNo1, edges[bridges[i]].nodeNo2};
-        // cout << "bridge id: " << i << endl;
-        // cout << "bridge node: " << node[0] << node[1] << endl;
         for (int k = 0; k < 2; k++) {
-            // cout << "begining node: " << node[k] << endl;
             if (nodes[node[k]].islandId != -1) {
                 // the node has been in a island
-                // cout << "node has been in island:" <<
-                // nodes[node[k]].islandId;
                 islands[nodes[node[k]].islandId].bridges.push_back(bridges[i]);
                 continue;
             }
@@ -247,11 +229,9 @@ void divideNode() {
             island tem(I);
             islands.push_back(tem);
             I++;
-            // cout << "find the new island, id:" << endl;
             //  search point by bfs
             queue<int> q;
             islands[I - 1].pointSet.push_back(root);
-            // cout << root << "  ";
             islands[I - 1].bridges.push_back(bridges[i]);
             q.push(root);
             while (!q.empty()) {
@@ -266,15 +246,12 @@ void divideNode() {
                         q.push(child);
                         islands[I - 1].pointSet.push_back(child);
                         nodes[child].islandId = I - 1;
-                        // cout << child << "  ";
                         nodeFlag[child] = true;
                     }
                 }
             }
-            // cout << endl;
         }
     }
-    // cout << "******end of dividing node******" << endl;
 }
 void testPrint(island i) {
     cout << "pointSet: " << endl;
@@ -288,7 +265,7 @@ void testPrint(island i) {
              << edges[i.bridges[j]].nodeNo2 << endl;
     }
 }
-
+//search road between islands
 void creatBridgeTree() {
     vector<bool> islandFlag(islands.size(), false);
     queue<int> q;
@@ -314,11 +291,9 @@ void creatBridgeTree() {
         }
     }
 }
-
-list<int> findPathIsland(task& t) {
+list<int> findPathIsland(task& t, list<int>& first) {
     int start = nodes[t.from].islandId;
     int end = nodes[t.to].islandId;
-    list<int> first;
     list<int> second;
     if (start == end) {
         return first;
@@ -349,7 +324,7 @@ list<int> findPathIsland(task& t) {
     }
     return first;
 }
-
+//input
 void initData() {
     scanf("%d %d %d %d %d", &N, &M, &T, &P, &D);
     for (int i = 0; i < N; i++) {
@@ -363,6 +338,7 @@ void initData() {
         pipes[i].initpipe(i, di);
         if (nodes[si].getEdge(ti) == -1) {
             edges[E].initedge(si, ti);
+            pipes[i].edgeId = E;
             nodes[si].e.push_back(E);
             nodes[ti].e.push_back(E++);
         }
@@ -374,21 +350,51 @@ void initData() {
     }
 }
 
-void Finded_Path(task t,vector<bool> possible_channel) {
+void Update_channel(task& t, int& channel){
+    //协商后更新信道
+    int oldChannel = t.channel;
+    t.possibleChannel[channel] = false;
+    t.channel = channel;
+    for (int i = 0; i < t.path.size(); i++){
+        pipes[i].channel[oldChannel] = -1;
+        pipes[i].channel[channel] = t.id;
+    }
+}
 
+void Finded_Path(task &t,vector<bool> possible_channel) {
+    //更新可能信道
+    t.possibleChannel = possible_channel;
+    //更新路径
+    stack<int> s;
+    int nowStep = t.to;
+    while(nowStep != t.from){
+        s.push(nowStep);
+        nowStep = tree[nowStep].parent;
+    }
+    while(!s.empty()){
+        t.path.push_back(s.top());
+        s.pop();
+    }
 }
 
 int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) { 
-    for (int i = 0; i < T; i++) {
+    for (int i = 0; i < P; i++) {
         if (possible_channel[i] = true) {
             edge tempe = edges[edgeno];
             for (int j = 0; j < tempe.p.size(); j++) {
-                task tempt = tasks[pipes[tempe.p[j]].channel[i]];//肯定被占用了，因此肯定有这个任务
+                task &tempt = tasks[pipes[tempe.p[j]].channel[i]];//肯定被占用了，因此肯定有这个任务
+                for (int t = 0; t < P; t++) {
+                    if (tempt.possibleChannel[t] && t!=i) {
+                        Update_channel(tempt, t);
+                        return tempt.channel;
+                    }
+                }
+                /*
                 if (!tempt.possibleChannel.empty()) {
                     tempt.channel = tempt.possibleChannel[0];
                     Update_channel(tempt, tempt.channel);
                     return tempt.channel;
-                }
+                }*/
                 /*else if(turns>1){
                     Channel_Communicate(, edgeno, turns - 1);
                 }*/
@@ -399,12 +405,34 @@ int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
 }
 
 int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel) {
-
-    return 1;
+    int bestNode = edges[nodes[blocknode[0]].e[0]].another(blocknode[0]);
+    int thisNode = blocknode[0];
+    for (int i = 0; i < blocknode.size(); i++){
+        for (vector<int>::iterator j = nodes[blocknode[i]].e.begin(); j != nodes[blocknode[i]].e.end(); j++) {
+            int nextNode = edges[*j].another(blocknode[i]);
+            if(nodes[nextNode].e.size() > nodes[bestNode].e.size()){
+                bestNode = nextNode;
+                thisNode = i;
+            }
+        }
+    }
+    pipe newpipe;
+    newpipe.edgeId = nodes[thisNode].getEdge(bestNode);
+    edges[newpipe.edgeId].p.push_back(M);
+    pipes.push_back(newpipe);
+    int best_cost = D;
+    for (int i = 0; i < edges[newpipe.edgeId].p.size(); i++){
+        if (best_cost > pipes[edges[newpipe.edgeId].p[i]].cost){
+            best_cost = pipes[edges[newpipe.edgeId].p[i]].cost;
+        }
+    }
+    newpipe.initpipe(M, best_cost);
+    M++;
+    return bestNode;
 }
 
-void bfs_Find_Path(task t) {
-    memset(nodeFlag, false, T * sizeof(bool));
+void bfs_Find_Path(task &t) {
+    memset(nodeFlag, false, N * sizeof(bool));
     queue<int> q;//BFS节点队列
     vector<int> blocknode;//阻塞节点记录
     vector<vector<bool> > blocknode_possible_channel;//到阻塞节点处可用信道记录
@@ -439,14 +467,15 @@ void bfs_Find_Path(task t) {
                 else {
                     bool hava_channel = false;
 
-                    for (int j = 0; j < T; j++) {
-                        if ((qpossible.front())[i] = (qpossible.front())[i] & edges[tempe[i]].PossibleChannel.count(i))
+                    for (int j = 0; j < P; j++) {
+                        qpossible.front()[i] = (qpossible.front())[i] & edges[tempe[i]].PossibleChannel.count(i);
+                        if (qpossible.front()[i])
                             hava_channel = true;
                     }
                     if (hava_channel) {
                         int next = edges[tempe[i]].another(q.front());
                         tree[next].parent = q.front();
-                        tree[next].deepth = i;
+                        tree[next].deepth = i; //?
                         if (next == t.to) {
                             Finded_Path(t, qpossible.front());
                             return;
@@ -479,6 +508,7 @@ void bfs_Find_Path(task t) {
             qpossible.pop();
         }
         //当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
+        //?一个结点链接多个边，如何选择加哪个边
         int add_pipe_node_index = Add_Pipe(blocknode, blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
         //加边后从加了边的堵塞节点恢复搜索}
         q.push(blocknode[add_pipe_node_index]);
@@ -487,6 +517,53 @@ void bfs_Find_Path(task t) {
     }
 
 }
+
+void divideTask(task& t) {
+    list<int> b;
+    findPathIsland(t, b);
+    int nowStep = t.from;
+    int begin = nowStep;
+    int goal = t.to;
+    for (list<int>::iterator i = b.begin(); i != b.end(); i++) {
+        int edgeId = bridges[*i];
+        t.from = nowStep;
+        t.to = nodes[edges[edgeId].nodeNo1].islandId == nodes[nowStep].islandId
+                   ? edges[edgeId].nodeNo1
+                   : edges[edgeId].nodeNo2;
+        bfs_Find_Path(t);
+        // 过桥
+        t.from = t.to;
+        t.to = edges[edgeId].another(t.to);
+        bfs_Find_Path(t);
+        nowStep = t.to;
+    }
+    t.from = nowStep;
+    t.to = goal;
+    bfs_Find_Path(t);
+    // 更新
+    for (int i = 0; i < P; i++) {
+        if (t.possibleChannel[i]) {
+            t.channel = i;
+            break;
+        }
+    }
+    // 加放大器并广播
+    int nowNode = begin;
+    for (int i = 0; i < t.path.size(); i++) {
+        int pipeId = t.path[i];
+        // 广播
+        pipes[pipeId].channel[t.channel] = t.id;
+        // 放大器
+        if (t.power - pipes[pipeId].cost < 0) {
+            t.amplifier.push_back(nowNode);
+            t.power = D - pipes[pipeId].cost;
+        } else {
+            t.power = t.power - pipes[pipeId].cost;
+        }
+        nowNode = edges[pipes[pipeId].edgeId].another(nowNode);
+    }
+}
+
 int main() {
     initData();
     creatTree();
@@ -494,22 +571,17 @@ int main() {
     divideNode();
     creatBridgeTree();
     /*
-    cout << "\nislandtree\n";
-    for (int i = 0; i < islands.size(); i++) {
-        cout << islandTree[i].parent << islandTree[i].deepth << endl;
-    }
-    cout << "\ntest dividenode********" << endl;
-    for (int i = 0; i < islands.size(); i++) {
-        cout << "island id: " << i << islands[i].id << endl;
-        testPrint(islands[i]);
-        cout << endl;
-    }
-    */
     for (int i = 0; i < T; i++) {
         cout << "task" << i << endl;
-        findPathIsland(tasks[i]);
-    }
+        list<int> t;
+        findPathIsland(tasks[i],t);
+    }*/
+
+    task& t = tasks[0];
+    t.from = 5;
+    t.to = 4;
+    divideTask(t);
     cout << "\ntest bfs_find_path********" << endl;
-    for (int i = 0; i < P; i++)
+    for (int i = 0; i < T; i++)
         bfs_Find_Path(tasks[i]);
 }
