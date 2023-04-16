@@ -496,13 +496,28 @@ void bfs_Find_Path(task &t) {
                         }
                     }
                     else {
-                        if (Channel_Communicate(tempp, tempe[i], 1) < 0) {//当前可用信道、边、协商伦次（深度）
+                        int communicate_channel = Channel_Communicate(tempp, tempe[i], 1);
+                        if (communicate_channel < 0) {//当前可用信道、边、协商伦次（深度）
                         //如果协商失败
                             if (have_edge == 1) have_edge = 0;
                         }
                         else {
                             //协商成功
-
+                            qpossible.front()[communicate_channel] = true;
+							int next = edges[tempe[i]].another(q.front());
+							tree[next].parent = q.front();
+							tree[next].deepth = i;
+							if (next == t.to) {
+								Finded_Path(t, qpossible.front());
+								return;
+							}
+							else {
+								have_edge = 2;
+								q.push(next);
+								vector<bool> temp = qpossible.front();
+								qpossible.push(temp);
+								nodeFlag[next] = true;
+							}
                         }
                     }
                 }
@@ -516,9 +531,10 @@ void bfs_Find_Path(task &t) {
             qpossible.pop();
         }
         //当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
-        int add_pipe_node_index = Add_Pipe(blocknode, blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
+        int add_pipe_block_index;
+        int add_pipe_node_index = Add_Pipe( blocknode, blocknode_possible_channel);//返回加边阻塞节走过加边后一个节点的编号
         //加边后从加了边的堵塞节点恢复搜索}
-        q.push(blocknode[add_pipe_node_index]);
+        q.push(add_pipe_node_index);
         qpossible.push(blocknode_possible_channel[add_pipe_node_index]);
         
     }
