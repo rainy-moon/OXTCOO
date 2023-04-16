@@ -422,7 +422,7 @@ int Add_Pipe(int& choosed_blocknode, vector<int> blocknode, vector<vector<bool> 
         }
     }
     pipe newpipe;
-    int edgeId = nodes[thisNode].getEdge(bestNode);
+    edgeId = nodes[thisNode].getEdge(bestNode);
     edges[edgeId].p.push_back(M);
     for (int i = 0; i < P; i++) {
         edges[edgeId].PossibleChannel.insert(i);
