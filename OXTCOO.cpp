@@ -364,11 +364,11 @@ void broadcastEdge(edge& e, int &newc){
             break;
         }
     }
-    if(flag){
+    if(!flag){
         e.PossibleChannel.erase(newc);
         for (vector<int>::iterator i = e.p.begin(); i != e.p.end(); i++){
             for (int j = 0; j < P;j++){
-                if (pipes[*i].channel[j]){
+                if (pipes[*i].channel[j] == -1){
                     continue;
                 }
                 tasks[pipes[*i].channel[j]].possibleChannel[newc] = false;
@@ -407,12 +407,10 @@ void Finded_Path(task& t, vector<bool> possible_channel) {
 
 int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
     for (int i = 0; i < P; i++) {
-        if (possible_channel[i] = true) {
+        if (possible_channel[i] == true) {
             edge tempe = edges[edgeno];
             for (int j = 0; j < tempe.p.size(); j++) {
-                task& tempt =
-                    tasks[pipes[tempe.p[j]]
-                              .channel[i]];  // 肯定被占用了，因此肯定有这个任务
+                task& tempt = tasks[pipes[tempe.p[j]].channel[i]];  // 肯定被占用了，因此肯定有这个任务
                 for (int t = 0; t < P; t++) {
                     if (tempt.possibleChannel[t] && t != i) {
                         Update_channel(tempt, t);
@@ -445,13 +443,12 @@ int Add_Pipe(int& choosed_blocknode,
     int thisNode = blocknode[0];
     int edgeId;
     for (int i = 0; i < blocknode.size(); i++) {
-        for (vector<int>::iterator j = nodes[blocknode[i]].e.begin();
-             j != nodes[blocknode[i]].e.end(); j++) {
+        for (vector<int>::iterator j = nodes[blocknode[i]].e.begin(); j != nodes[blocknode[i]].e.end(); j++) {
             int nextNode = edges[*j].another(blocknode[i]);
             if (!nodeFlag[nextNode] &&
                 nodes[nextNode].e.size() > nodes[bestNode].e.size()) {
                 bestNode = nextNode;
-                thisNode = i;
+                thisNode = blocknode[i];
                 edgeId = *j;
             }
         }
@@ -478,6 +475,7 @@ int Add_Pipe(int& choosed_blocknode,
 }
 
 void bfs_Find_Path(task& t) {
+    cout << "task id: " << t.id << endl;
     if(t.from == t.to){
         return;
     }
@@ -494,7 +492,6 @@ void bfs_Find_Path(task& t) {
     // 加死循环直到找到路径？
     while (true) {
         while (!q.empty()) {
-            // cout << "now node:" << q.front() << endl;
             vector<int> tempe = nodes[q.front()].e;
             vector<bool> tempp =
                 qpossible.front();  // 记录走到当前位置还可用的信道
@@ -504,26 +501,10 @@ void bfs_Find_Path(task& t) {
                 if (nodeFlag[edges[tempe[i]].another(q.front())]) {
                     continue;
                 }
-                // else if (edges[tempe[i]].PossibleChannel.size() == 0) {
-                //     if (Channel_Communicate(tempp, i, 1) < 0)
-                //     {//当前可用信道、边、协商伦次（深度）
-                //         //如果协商失败
-                //         blocknode.push_back(tempe[i]);
-                //         blocknode_possible_channel.push_back(qpossible.front());
-                //         q.pop();
-                //         qpossible.pop();
-                //     }
-                //     else {
-                //         //协商成功
-                //     }
-                // }
                 else {
                     bool hava_channel = false;
-
                     for (int j = 0; j < P; j++) {
-                        qpossible.front()[j] =
-                            (qpossible.front())[j] &
-                            edges[tempe[i]].PossibleChannel.count(j);
+                        qpossible.front()[j] = qpossible.front()[j] & edges[tempe[i]].PossibleChannel.count(j);
                         if (qpossible.front()[j])
                             hava_channel = true;
                     }
@@ -641,6 +622,7 @@ void divideTask(task& t) {
         }
         nowNode = edges[edgeId].another(nowNode);
     }
+    cout << endl;
 }
 
 int main() {
@@ -662,6 +644,13 @@ int main() {
     cout << "\ntest bfs_find_path********" << endl;
     for (int i = 0; i < T; i++){
         divideTask(tasks[i]);
+    }
+    for (int i = 0; i < T; i++) {
+        cout << "task id: " << i << endl;
+        for (int j = 0; j < tasks[i].path.size(); j++){
+            cout << tasks[i].path[j] << " ";
+        }
+        cout << endl;
     }
     /* for (int i = 0; i < T; i++)
              bfs_Find_Path(tasks[i]);*/
