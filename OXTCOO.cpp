@@ -23,6 +23,7 @@ int anotherIsland(edge& e, int islandId);
 class pipe {
    public:
     int id;
+    int edgeId;
     int cost;
     int channel[80];
     pipe() {}
@@ -340,7 +341,7 @@ void initData() {
         int get_edge = nodes[si].getEdge(ti);
         if (get_edge == -1) {
             edges[E].initedge(si, ti);
-            // pipes[i].edgeId = E;
+            pipes[i].edgeId = E;
             edges[E].p.push_back(i);
             nodes[si].e.push_back(E);
             nodes[ti].e.push_back(E++);
@@ -355,14 +356,36 @@ void initData() {
     }
 }
 
+void broadcastEdge(edge& e, int &newc){
+    bool flag = false;
+    for (int j = 0; j < e.p.size(); j++) {
+        if (pipes[e.p[j]].channel[newc] == -1) {
+            flag = true;
+            break;
+        }
+    }
+    if(flag){
+        e.PossibleChannel.erase(newc);
+        for (vector<int>::iterator i = e.p.begin(); i != e.p.end(); i++){
+            for (int j = 0; j < P;j++){
+                if (pipes[*i].channel[j]){
+                    continue;
+                }
+                tasks[pipes[*i].channel[j]].possibleChannel[newc] = false;
+            }
+        }
+    } 
+}
+
 void Update_channel(task& t, int& channel) {
-    // 协商后更新信道
+    // 协商后更新信道 
     int oldChannel = t.channel;
-    t.possibleChannel[channel] = false;
     t.channel = channel;
     for (int i = 0; i < t.path.size(); i++) {
         pipes[i].channel[oldChannel] = -1;
         pipes[i].channel[channel] = t.id;
+        edge &temEdge = edges[pipes[i].edgeId];
+        broadcastEdge(temEdge, channel);
     }
 }
 
@@ -607,6 +630,7 @@ void divideTask(task& t) {
             }
         }
         pipes[pipeId].channel[t.channel] = t.id;
+        broadcastEdge(edges[pipes[pipeId].edgeId], t.channel);
         t.path[i] = pipeId;
         // 放大器
         if (t.power - pipes[pipeId].cost < 0) {
@@ -636,9 +660,9 @@ int main() {
      t.from = 5;
      t.to = 4;*/
     cout << "\ntest bfs_find_path********" << endl;
-    for (int i = 0; i < T; i++)
+    for (int i = 0; i < T; i++){
         divideTask(tasks[i]);
-
+    }
     /* for (int i = 0; i < T; i++)
              bfs_Find_Path(tasks[i]);*/
 }
