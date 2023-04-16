@@ -403,19 +403,21 @@ int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
     return -1;
 }
 
-int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel) {
+int Add_Pipe(int& choosed_blocknode, vector<int> blocknode, vector<vector<bool> >block_possible_channel) {
     //? 排除nodeflag标记过的节点
     //? 连通度是以edge算的（没有排除已经被走过的节点？）
 
     //&修改新加边状态
     int bestNode = edges[nodes[blocknode[0]].e[0]].another(blocknode[0]);
     int thisNode = blocknode[0];
+    int edgeId;
     for (int i = 0; i < blocknode.size(); i++){
         for (vector<int>::iterator j = nodes[blocknode[i]].e.begin(); j != nodes[blocknode[i]].e.end(); j++) {
             int nextNode = edges[*j].another(blocknode[i]);
             if(!nodeFlag[nextNode] && nodes[nextNode].e.size() > nodes[bestNode].e.size()){
                 bestNode = nextNode;
                 thisNode = i;
+                edgeId = *j;
             }
         }
     }
@@ -434,6 +436,9 @@ int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel)
     }
     newpipe.initpipe(M, best_cost);
     M++;
+    tree[bestNode].parent = thisNode;
+    tree[bestNode].deepth = edgeId;
+    choosed_blocknode = thisNode;
     return bestNode;
 }
 
@@ -486,6 +491,7 @@ void bfs_Find_Path(task &t) {
                             Finded_Path(t, qpossible.front());
                             return;
                         }
+
                         else {
                             have_edge = 2;
                             q.push(next);
@@ -514,10 +520,11 @@ void bfs_Find_Path(task &t) {
             qpossible.pop();
         }
         //当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
-        int add_pipe_node_index = Add_Pipe(blocknode, blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
+        int choosed_blocknodeId;
+        int nextNode = Add_Pipe(choosed_blocknodeId, blocknode, blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
         //加边后从加了边的堵塞节点恢复搜索}
-        q.push(blocknode[add_pipe_node_index]);
-        qpossible.push(blocknode_possible_channel[add_pipe_node_index]);
+        q.push(nextNode);
+        qpossible.push(blocknode_possible_channel[choosed_blocknodeId]);
         
     }
 
