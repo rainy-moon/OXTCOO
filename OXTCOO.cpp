@@ -335,11 +335,16 @@ void initData() {
         scanf("%d %d %d", &si, &ti, &di);
         if(di>D) continue;
         pipes[i].initpipe(i, di);
-        if (nodes[si].getEdge(ti) == -1) {
+        int get_edge = nodes[si].getEdge(ti);
+        if (get_edge == -1) {
             edges[E].initedge(si, ti);
             //pipes[i].edgeId = E;
+            edges[E].p.push_back(i);
             nodes[si].e.push_back(E);
             nodes[ti].e.push_back(E++);
+        }
+        else {
+            edges[get_edge].p.push_back(i);
         }
     }
     for (int i = 0; i < T; i++) {
@@ -487,7 +492,7 @@ void bfs_Find_Path(task &t) {
                     if (hava_channel) {
                         int next = edges[tempe[i]].another(q.front());
                         tree[next].parent = q.front();
-                        tree[next].deepth = i;
+                        tree[next].deepth = tempe[i];
                         if (next == t.to) {
                             Finded_Path(t, qpossible.front());
                             return;
@@ -512,7 +517,7 @@ void bfs_Find_Path(task &t) {
                             qpossible.front()[communicate_channel] = true;
 							int next = edges[tempe[i]].another(q.front());
 							tree[next].parent = q.front();
-							tree[next].deepth = i;
+							tree[next].deepth = tempe[i];
 							if (next == t.to) {
 								Finded_Path(t, qpossible.front());
 								return;
@@ -583,8 +588,8 @@ void divideTask(task& t) {
         int pipeId;
         // 广播并选pipe
         for (int j = 0; j < edges[edgeId].p.size(); j++){
-            if (!pipes[edges[edgeId].p[j]].channel[t.channel]) {
-                pipeId = j;
+            if (pipes[edges[edgeId].p[j]].channel[t.channel]) {
+                pipeId = edges[edgeId].p[j];
             }
         }
         pipes[pipeId].channel[t.channel] = t.id;
