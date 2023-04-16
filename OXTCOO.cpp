@@ -24,7 +24,7 @@ class pipe {
    public:
     int id;
     int cost;
-    int channel[80];
+    int channel[80];//记录执行的任务编号
     pipe() {}
     void initpipe(int id, int cost) {
         this->id = id;
@@ -362,6 +362,7 @@ void Update_channel(task& t, int& channel){
     for (int i = 0; i < t.path.size(); i++){
         pipes[i].channel[oldChannel] = -1;
         pipes[i].channel[channel] = t.id;
+
     }
 }
 
@@ -448,6 +449,7 @@ int Add_Pipe(int& choosed_blocknode, vector<int> blocknode, vector<vector<bool> 
 }
 
 void bfs_Find_Path(task &t) {
+    if (t.from == t.to) return;
     memset(nodeFlag, false, N * sizeof(bool));
     queue<int> q;//BFS节点队列
     vector<int> blocknode;//阻塞节点记录
@@ -588,10 +590,11 @@ void divideTask(task& t) {
         int pipeId;
         // 广播并选pipe
         for (int j = 0; j < edges[edgeId].p.size(); j++){
-            if (pipes[edges[edgeId].p[j]].channel[t.channel]) {
+            if (pipes[edges[edgeId].p[j]].channel[t.channel]==-1) {
                 pipeId = edges[edgeId].p[j];
             }
         }
+
         pipes[pipeId].channel[t.channel] = t.id;
         t.path[i] = pipeId;
         // 放大器
