@@ -455,6 +455,7 @@ void bfs_Find_Path(task &t) {
             vector<bool> tempp = qpossible.front();//记录走到当前位置还可用的信道
             int have_edge = 1;
             for (int i = 0; i < tempe.size(); i++) {
+                qpossible.front() = tempp;
                 if (nodeFlag[edges[tempe[i]].another(q.front())]) {
 
                     continue;
@@ -475,8 +476,8 @@ void bfs_Find_Path(task &t) {
                     bool hava_channel = false;
 
                     for (int j = 0; j < P; j++) {
-                        qpossible.front()[i] = (qpossible.front())[i] & edges[tempe[i]].PossibleChannel.count(i);
-                        if (qpossible.front()[i])
+                        qpossible.front()[j] = (qpossible.front())[j] & edges[tempe[i]].PossibleChannel.count(j);
+                        if (qpossible.front()[j])
                             hava_channel = true;
                     }
                     if (hava_channel) {
@@ -502,6 +503,7 @@ void bfs_Find_Path(task &t) {
                         }
                         else {
                             //协商成功
+
                         }
                     }
                 }
