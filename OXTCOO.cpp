@@ -23,7 +23,6 @@ int anotherIsland(edge& e, int islandId);
 class pipe {
    public:
     int id;
-    int edgeId;
     int cost;
     int channel[80];
     pipe() {}
@@ -338,7 +337,7 @@ void initData() {
         pipes[i].initpipe(i, di);
         if (nodes[si].getEdge(ti) == -1) {
             edges[E].initedge(si, ti);
-            pipes[i].edgeId = E;
+            //pipes[i].edgeId = E;
             nodes[si].e.push_back(E);
             nodes[ti].e.push_back(E++);
         }
@@ -421,16 +420,16 @@ int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel)
         }
     }
     pipe newpipe;
-    newpipe.edgeId = nodes[thisNode].getEdge(bestNode);
-    edges[newpipe.edgeId].p.push_back(M);
+    int edgeId = nodes[thisNode].getEdge(bestNode);
+    edges[edgeId].p.push_back(M);
     for (int i = 0; i < P; i++) {
-        edges[newpipe.edgeId].PossibleChannel.insert(i);
+        edges[edgeId].PossibleChannel.insert(i);
     }
     pipes.push_back(newpipe);
     int best_cost = D;
-    for (int i = 0; i < edges[newpipe.edgeId].p.size(); i++){
-        if (best_cost > pipes[edges[newpipe.edgeId].p[i]].cost){
-            best_cost = pipes[edges[newpipe.edgeId].p[i]].cost;
+    for (int i = 0; i < edges[edgeId].p.size(); i++){
+        if (best_cost > pipes[edges[edgeId].p[i]].cost){
+            best_cost = pipes[edges[edgeId].p[i]].cost;
         }
     }
     newpipe.initpipe(M, best_cost);
@@ -451,13 +450,13 @@ void bfs_Find_Path(task &t) {
     //加死循环直到找到路径？
     while (true) {
         while (!q.empty()) {
+            //cout << "now node:" << q.front() << endl;
             vector<int> tempe = nodes[q.front()].e;
             vector<bool> tempp = qpossible.front();//记录走到当前位置还可用的信道
             int have_edge = 1;
             for (int i = 0; i < tempe.size(); i++) {
                 qpossible.front() = tempp;
                 if (nodeFlag[edges[tempe[i]].another(q.front())]) {
-
                     continue;
                 }
                 //else if (edges[tempe[i]].PossibleChannel.size() == 0) {
@@ -558,9 +557,16 @@ void divideTask(task& t) {
     // 加放大器并广播
     int nowNode = begin;
     for (int i = 0; i < t.path.size(); i++) {
-        int pipeId = t.path[i];
-        // 广播
+        int edgeId = t.path[i];
+        int pipeId;
+        // 广播并选pipe
+        for (int j = 0; j < edges[edgeId].p.size(); j++){
+            if (!pipes[edges[edgeId].p[j]].channel[t.channel]) {
+                pipeId = j;
+            }
+        }
         pipes[pipeId].channel[t.channel] = t.id;
+        t.path[i] = pipeId;
         // 放大器
         if (t.power - pipes[pipeId].cost < 0) {
             t.amplifier.push_back(nowNode);
@@ -568,7 +574,7 @@ void divideTask(task& t) {
         } else {
             t.power = t.power - pipes[pipeId].cost;
         }
-        nowNode = edges[pipes[pipeId].edgeId].another(nowNode);
+        nowNode = edges[edgeId].another(nowNode);
     }
 }
 
