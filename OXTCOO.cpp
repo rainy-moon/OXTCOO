@@ -508,7 +508,7 @@ void bfs_Find_Path(task &t) {
             qpossible.pop();
         }
         //当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
-        //?一个结点链接多个边，如何选择加哪个边
+        //一个结点链接多个边，如何选择加哪个边
         int add_pipe_node_index = Add_Pipe(blocknode, blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
         //加边后从加了边的堵塞节点恢复搜索}
         q.push(blocknode[add_pipe_node_index]);
@@ -577,11 +577,13 @@ int main() {
         findPathIsland(tasks[i],t);
     }*/
 
-    task& t = tasks[0];
-    t.from = 5;
-    t.to = 4;
-    divideTask(t);
+	/* task& t = tasks[0];
+	 t.from = 5;
+	 t.to = 4;*/
     cout << "\ntest bfs_find_path********" << endl;
-    for (int i = 0; i < T; i++)
-        bfs_Find_Path(tasks[i]);
+    for(int i = 0;i<T;i++)
+        divideTask(tasks[i]);
+    
+	/* for (int i = 0; i < T; i++)
+		 bfs_Find_Path(tasks[i]);*/
 }
