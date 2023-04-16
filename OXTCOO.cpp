@@ -460,6 +460,7 @@ void bfs_Find_Path(task &t) {
             vector<bool> tempp = qpossible.front();//记录走到当前位置还可用的信道
             int have_edge = 1;
             for (int i = 0; i < tempe.size(); i++) {
+                qpossible.front() = tempp;
                 if (nodeFlag[edges[tempe[i]].another(q.front())]) {
                     continue;
                 }
@@ -501,12 +502,28 @@ void bfs_Find_Path(task &t) {
                         }
                     }
                     else {
-                        if (Channel_Communicate(tempp, tempe[i], 1) < 0) {//当前可用信道、边、协商伦次（深度）
+                        int communicate_channel = Channel_Communicate(tempp, tempe[i], 1);
+                        if (communicate_channel < 0) {//当前可用信道、边、协商伦次（深度）
                         //如果协商失败
                             if (have_edge == 1) have_edge = 0;
                         }
                         else {
                             //协商成功
+                            qpossible.front()[communicate_channel] = true;
+							int next = edges[tempe[i]].another(q.front());
+							tree[next].parent = q.front();
+							tree[next].deepth = i;
+							if (next == t.to) {
+								Finded_Path(t, qpossible.front());
+								return;
+							}
+							else {
+								have_edge = 2;
+								q.push(next);
+								vector<bool> temp = qpossible.front();
+								qpossible.push(temp);
+								nodeFlag[next] = true;
+							}
                         }
                     }
                 }
@@ -596,11 +613,13 @@ int main() {
         findPathIsland(tasks[i],t);
     }*/
 
-    task& t = tasks[0];
-    t.from = 5;
-    t.to = 4;
-    divideTask(t);
+	/* task& t = tasks[0];
+	 t.from = 5;
+	 t.to = 4;*/
     cout << "\ntest bfs_find_path********" << endl;
-    for (int i = 0; i < T; i++)
-        bfs_Find_Path(tasks[i]);
+    for(int i = 0;i<T;i++)
+        divideTask(tasks[i]);
+    
+	/* for (int i = 0; i < T; i++)
+		 bfs_Find_Path(tasks[i]);*/
 }
