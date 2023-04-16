@@ -335,11 +335,16 @@ void initData() {
         scanf("%d %d %d", &si, &ti, &di);
         if(di>D) continue;
         pipes[i].initpipe(i, di);
-        if (nodes[si].getEdge(ti) == -1) {
+        int get_edge = nodes[si].getEdge(ti);
+        if (get_edge == -1) {
             edges[E].initedge(si, ti);
-            //pipes[i].edgeId = E;
+            // pipes[i].edgeId = E;
+            edges[E].p.push_back(i);
             nodes[si].e.push_back(E);
             nodes[ti].e.push_back(E++);
+        } 
+        else {
+            edges[get_edge].p.push_back(i);
         }
     }
     for (int i = 0; i < T; i++) {
@@ -443,6 +448,9 @@ int Add_Pipe(int& choosed_blocknode, vector<int> blocknode, vector<vector<bool> 
 }
 
 void bfs_Find_Path(task &t) {
+    if(t.from == t.to){
+        return;
+    }
     memset(nodeFlag, false, N * sizeof(bool));
     queue<int> q;//BFS节点队列
     vector<int> blocknode;//阻塞节点记录
@@ -455,7 +463,7 @@ void bfs_Find_Path(task &t) {
     //加死循环直到找到路径？
     while (true) {
         while (!q.empty()) {
-            //cout << "now node:" << q.front() << endl;
+            cout << "now node:" << q.front() << endl;
             vector<int> tempe = nodes[q.front()].e;
             vector<bool> tempp = qpossible.front();//记录走到当前位置还可用的信道
             int have_edge = 1;
@@ -481,13 +489,14 @@ void bfs_Find_Path(task &t) {
 
                     for (int j = 0; j < P; j++) {
                         qpossible.front()[j] = (qpossible.front())[j] & edges[tempe[i]].PossibleChannel.count(j);
-                        if (qpossible.front()[j])
+                        if (qpossible.front()[j]){
                             hava_channel = true;
+                        }
                     }
                     if (hava_channel) {
                         int next = edges[tempe[i]].another(q.front());
                         tree[next].parent = q.front();
-                        tree[next].deepth = i;
+                        tree[next].deepth = tempe[i];
                         if (next == t.to) {
                             Finded_Path(t, qpossible.front());
                             return;
@@ -512,7 +521,7 @@ void bfs_Find_Path(task &t) {
                             qpossible.front()[communicate_channel] = true;
 							int next = edges[tempe[i]].another(q.front());
 							tree[next].parent = q.front();
-							tree[next].deepth = i;
+							tree[next].deepth = tempe[i];
 							if (next == t.to) {
 								Finded_Path(t, qpossible.front());
 								return;
@@ -583,7 +592,7 @@ void divideTask(task& t) {
         int pipeId;
         // 广播并选pipe
         for (int j = 0; j < edges[edgeId].p.size(); j++){
-            if (!pipes[edges[edgeId].p[j]].channel[t.channel]) {
+            if (pipes[edges[edgeId].p[j]].channel[t.channel]) {
                 pipeId = j;
             }
         }
@@ -613,12 +622,13 @@ int main() {
         findPathIsland(tasks[i],t);
     }*/
 
-	/* task& t = tasks[0];
-	 t.from = 5;
-	 t.to = 4;*/
+	task& t = tasks[0];
+	t.from = 5;
+	t.to = 4;
+    //divideTask(tasks[0]);
     cout << "\ntest bfs_find_path********" << endl;
-    for(int i = 0;i<T;i++)
-        divideTask(tasks[i]);
+    for (int i = 0; i < T; i++)
+    divideTask(tasks[i]);
     
 	/* for (int i = 0; i < T; i++)
 		 bfs_Find_Path(tasks[i]);*/
