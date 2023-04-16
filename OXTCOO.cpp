@@ -368,7 +368,7 @@ void Finded_Path(task &t,vector<bool> possible_channel) {
     stack<int> s;
     int nowStep = t.to;
     while(nowStep != t.from){
-        s.push(nowStep);
+        s.push(tree[nowStep].deepth);
         nowStep = tree[nowStep].parent;
     }
     while(!s.empty()){
@@ -405,12 +405,16 @@ int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
 }
 
 int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel) {
+    //? 排除nodeflag标记过的节点
+    //? 连通度是以edge算的（没有排除已经被走过的节点？）
+
+    //&修改新加边状态
     int bestNode = edges[nodes[blocknode[0]].e[0]].another(blocknode[0]);
     int thisNode = blocknode[0];
     for (int i = 0; i < blocknode.size(); i++){
         for (vector<int>::iterator j = nodes[blocknode[i]].e.begin(); j != nodes[blocknode[i]].e.end(); j++) {
             int nextNode = edges[*j].another(blocknode[i]);
-            if(nodes[nextNode].e.size() > nodes[bestNode].e.size()){
+            if(!nodeFlag[nextNode] && nodes[nextNode].e.size() > nodes[bestNode].e.size()){
                 bestNode = nextNode;
                 thisNode = i;
             }
@@ -419,6 +423,9 @@ int Add_Pipe(vector<int> blocknode, vector<vector<bool> >block_possible_channel)
     pipe newpipe;
     newpipe.edgeId = nodes[thisNode].getEdge(bestNode);
     edges[newpipe.edgeId].p.push_back(M);
+    for (int i = 0; i < P; i++) {
+        edges[newpipe.edgeId].PossibleChannel.insert(i);
+    }
     pipes.push_back(newpipe);
     int best_cost = D;
     for (int i = 0; i < edges[newpipe.edgeId].p.size(); i++){
@@ -475,7 +482,7 @@ void bfs_Find_Path(task &t) {
                     if (hava_channel) {
                         int next = edges[tempe[i]].another(q.front());
                         tree[next].parent = q.front();
-                        tree[next].deepth = i; //?
+                        tree[next].deepth = i;
                         if (next == t.to) {
                             Finded_Path(t, qpossible.front());
                             return;
@@ -508,7 +515,6 @@ void bfs_Find_Path(task &t) {
             qpossible.pop();
         }
         //当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
-        //?一个结点链接多个边，如何选择加哪个边
         int add_pipe_node_index = Add_Pipe(blocknode, blocknode_possible_channel);//返回加边阻塞节点在vector中的下标
         //加边后从加了边的堵塞节点恢复搜索}
         q.push(blocknode[add_pipe_node_index]);
