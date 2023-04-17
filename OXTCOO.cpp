@@ -7,6 +7,7 @@
 #include <set>
 #include <stack>
 #include <vector>
+#include <algorithm> 
 using namespace std;
 
 int N, M, T = 80, P, D;  // 节点数量、管道数量、任务数量、信道数量、衰减距离
@@ -138,6 +139,8 @@ vector<pipe> pipes;
 node nodes[5005];
 
 vector<island> islands;
+vector<int> bridges;
+
 treeNode tree[5000];
 treeNode islandTree[5000];
 bool nodeFlag[5000];
@@ -375,11 +378,9 @@ void Update_channel(task& t, int& channel) {
     int oldChannel = t.channel;
     t.channel = channel;
     for (int i = 0; i < t.path.size(); i++) {
-        pipes[t.path[i]].channel[oldChannel] = -1;
-        pipes[t.path[i]].channel[channel] = t.id;
-        edges[pipes[t.path[i]].edgeId].PossibleChannel.insert(
-            oldChannel);  // add
-        edge& temEdge = edges[pipes[t.path[i]].edgeId];
+        pipes[i].channel[oldChannel] = -1;
+        pipes[i].channel[channel] = t.id;
+        edge &temEdge = edges[pipes[i].edgeId];
         broadcastEdge(temEdge, channel);
     }
 }
@@ -439,9 +440,8 @@ int Add_Pipe(int& choosed_blocknode,
             if (!nodeFlag[nextNode]) {
                 if (bestNode == -1) {
                     bestNode = nextNode;
-                    thisNode = blocknode[i];
-                } else if (nodes[nextNode].e.size() >
-                           nodes[bestNode].e.size()) {
+                }
+                else if (nodes[nextNode].e.size() > nodes[bestNode].e.size()) {
                     bestNode = nextNode;
                     thisNode = blocknode[i];
                     edgeId = *j;
@@ -565,6 +565,7 @@ void bfs_Find_Path(task& t, bool isbridge) {
             return;
         }
         q.push(nextNode);
+        nodeFlag[nextNode] = true;
         qpossible.push(blocknode_possible_channel[choosed_blocknodeId]);
         nodeFlag[nextNode] = true;
     }
