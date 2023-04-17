@@ -575,6 +575,11 @@ void bfs_Find_Path(task& t, bool isbridge) {
         // 当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
         int choosed_blocknodeId;
         int index = 0;
+        if(isCommunicate){
+            for (int i = 0; i < blocknode.size(); i++){
+                recall(blocknode_possible_channel[i], blocknode[i], t.from);
+            }
+        }
         int nextNode =
             Add_Pipe(choosed_blocknodeId, blocknode, blocknode_possible_channel,
                      index);  // 返回加边阻塞节点在vector中的下标
