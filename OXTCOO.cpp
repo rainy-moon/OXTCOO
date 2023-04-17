@@ -13,6 +13,7 @@ int N, M, T = 80, P, D;  // 节点数量、管道数量、任务数量、信道�
 int E = 0;  // 总边数
 int I = 0;  // 岛数量
 int MM;
+bool isCommunicate = false;
 class pipe;
 class edge;
 class task;
@@ -355,10 +356,6 @@ void broadcastEdge(edge& e, int& newc) {
     }
     if (!flag) {
         e.PossibleChannel.erase(newc);
-        if (e.nodeNo1 == 2 && e.nodeNo2 == 3) {
-            for (int i = 0; i < 3; i++) {
-            }
-        }
         for (vector<int>::iterator i = e.p.begin(); i != e.p.end(); i++) {
             for (int j = 0; j < P; j++) {
                 if (pipes[*i].channel[j] == -1) {
@@ -377,8 +374,7 @@ void Update_channel(task& t, int& channel) {
     for (int i = 0; i < t.path.size(); i++) {
         pipes[t.path[i]].channel[oldChannel] = -1;
         pipes[t.path[i]].channel[channel] = t.id;
-        edges[pipes[t.path[i]].edgeId].PossibleChannel.insert(
-            oldChannel);  // add
+        edges[pipes[t.path[i]].edgeId].PossibleChannel.insert(oldChannel);  // add
         edge& temEdge = edges[pipes[t.path[i]].edgeId];
         broadcastEdge(temEdge, channel);
     }
@@ -400,17 +396,25 @@ void Finded_Path(task& t, vector<bool> possible_channel) {
     }
 }
 
+void recall(vector<bool> &q, int now, int from){
+    while(now != from){
+        for (int i = 0; i < P; i++){
+            q[i] = q[i] & edges[tree[now].deepth].PossibleChannel.count(i);
+        }
+        now = tree[now].parent;
+    }
+}
+
 int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
     for (int i = 0; i < P; i++) {
         if (possible_channel[i]) {
             edge& tempe = edges[edgeno];
             for (int j = 0; j < tempe.p.size(); j++) {
-                task& tempt =
-                    tasks[pipes[tempe.p[j]]
-                              .channel[i]];  // 肯定被占用了，因此肯定有这个任务
+                task& tempt = tasks[pipes[tempe.p[j]].channel[i]];  // 肯定被占用了，因此肯定有这个任务
                 for (int t = 0; t < P; t++) {
                     if (tempt.possibleChannel[t] && t != i) {
                         Update_channel(tempt, t);
+                        isCommunicate = true;
                         return possible_channel[i];
                     }
                 }
@@ -469,8 +473,7 @@ int Add_Pipe(int& choosed_blocknode,
     M++;
     tree[bestNode].parent = thisNode;
     tree[bestNode].deepth = edgeId;
-    choosed_blocknode =
-        find(blocknode.begin(), blocknode.end(), thisNode) - blocknode.begin();
+    choosed_blocknode = find(blocknode.begin(), blocknode.end(), thisNode) - blocknode.begin();
     return bestNode;
 }
 
@@ -493,23 +496,26 @@ void bfs_Find_Path(task& t, bool isbridge) {
     qpossible.push(t.possibleChannel);
     tree[t.from].parent = -1;
     nodeFlag[t.from] = true;
+    isCommunicate = false;
     // 加死循环直到找到路径？
     while (true) {
         while (!q.empty()) {
+            if(isCommunicate){
+                recall(qpossible.front(), q.front(), t.from);
+            }
             vector<int> tempe = nodes[q.front()].e;
-            vector<bool> tempp =
-                qpossible.front();  // 记录走到当前位置还可用的信道
+            vector<bool> tempp = qpossible.front();  // 记录走到当前位置还可用的信道
             int have_edge = 1;
             for (int i = 0; i < tempe.size(); i++) {
                 qpossible.front() = tempp;
                 if (nodeFlag[edges[tempe[i]].another(q.front())]) {
                     continue;
-                } else {
+                } 
+                else {
                     bool hava_channel = false;
                     for (int j = 0; j < P; j++) {
                         qpossible.front()[j] =
-                            qpossible.front()[j] &
-                            edges[tempe[i]].PossibleChannel.count(j);
+                        qpossible.front()[j] & edges[tempe[i]].PossibleChannel.count(j);
                         if (qpossible.front()[j])
                             hava_channel = true;
                     }
@@ -528,15 +534,16 @@ void bfs_Find_Path(task& t, bool isbridge) {
                             nodeFlag[next] = true;
                         }
                     } else {
-                        int communicate_channel =
-                            Channel_Communicate(tempp, tempe[i], 1);
+                        int communicate_channel = Channel_Communicate(tempp, tempe[i], 1);
                         // 当前可用信道、边、协商伦次（深度）
                         if (communicate_channel < 0) {
                             // 如果协商失败
                             // if (have_edge == 1)
                             // have_edge = 0;
-                            blocknode.push_back(q.front());
-                            blocknode_possible_channel.push_back(tempp);
+                            int tempn = q.front();
+                            blocknode.push_back(tempn);
+                            vector<bool> temp = tempp;
+                            blocknode_possible_channel.push_back(temp);
                         } else {
                             // 协商成功
                             qpossible.front()[communicate_channel] = true;
@@ -557,10 +564,11 @@ void bfs_Find_Path(task& t, bool isbridge) {
                     }
                 }
             }
+            /*
             if (!have_edge) {
                 blocknode.push_back(q.front());
                 blocknode_possible_channel.push_back(tempp);
-            }
+            }*/
             q.pop();
             qpossible.pop();
         }
