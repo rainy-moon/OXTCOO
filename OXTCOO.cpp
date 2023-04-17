@@ -6,6 +6,7 @@
 #include <set>
 #include <stack>
 #include <vector>
+#include <algorithm> 
 using namespace std;
 
 int N, M, T = 80, P, D;  // 节点数量、管道数量、任务数量、信道数量、衰减距离
@@ -19,7 +20,7 @@ class node;
 class island;
 class treeNode;
 int anotherIsland(edge& e, int islandId);
-
+vector<int> bridges;
 class pipe {
    public:
     int id;
@@ -116,7 +117,7 @@ class island {
         for (int i = 0; i < bridges.size(); i++) {
             int edgeId = bridges[i];
             if (anotherIsland(edges[edgeId], id) == goal) {
-                return i;
+                return bridges[i];
             }
         }
         return -1;
@@ -134,7 +135,7 @@ vector<pipe> pipes;
 node nodes[5005];
 
 vector<island> islands;
-vector<int> bridges;
+
 
 treeNode tree[5000];
 treeNode islandTree[5000];
@@ -385,9 +386,9 @@ void Update_channel(task& t, int& channel) {
     int oldChannel = t.channel;
     t.channel = channel;
     for (int i = 0; i < t.path.size(); i++) {
-        pipes[i].channel[oldChannel] = -1;
-        pipes[i].channel[channel] = t.id;
-        edge &temEdge = edges[pipes[i].edgeId];
+        pipes[t.path[i]].channel[oldChannel] = -1;
+        pipes[t.path[i]].channel[channel] = t.id;
+        edge &temEdge = edges[pipes[t.path[i]].edgeId];
         broadcastEdge(temEdge, channel);
     }
 }
@@ -419,7 +420,7 @@ int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
                 for (int t = 0; t < P; t++) {
                     if (tempt.possibleChannel[t] && t != i) {
                         Update_channel(tempt, t);
-                        return tempt.channel;
+                        return possible_channel[i];
                     }
                 }
                 /*
@@ -456,6 +457,7 @@ int Add_Pipe(int& choosed_blocknode,
             if (!nodeFlag[nextNode]) {
                 if (bestNode == -1) {
                     bestNode = nextNode;
+                    thisNode = blocknode[i];
                 }
                 else if (nodes[nextNode].e.size() > nodes[bestNode].e.size()) {
                     bestNode = nextNode;
@@ -607,6 +609,7 @@ void bfs_Find_Path(task& t,bool isbridge) {
 			return;
 		}
         q.push(nextNode);
+        nodeFlag[nextNode] = true;
         qpossible.push(blocknode_possible_channel[choosed_blocknodeId]);
         
     }
@@ -619,7 +622,7 @@ void divideTask(task& t) {
     int begin = nowStep;
     int goal = t.to;
     for (list<int>::iterator i = b.begin(); i != b.end(); i++) {
-        int edgeId = bridges[*i];
+        int edgeId = *i;
         t.from = nowStep;
         t.to = nodes[edges[edgeId].nodeNo1].islandId == nodes[nowStep].islandId
                    ? edges[edgeId].nodeNo1
@@ -645,7 +648,7 @@ void divideTask(task& t) {
     int nowNode = begin;
     for (int i = 0; i < t.path.size(); i++) {
         int edgeId = t.path[i];
-        int pipeId;
+        int pipeId = 0;
         // 广播并选pipe
         for (int j = 0; j < edges[edgeId].p.size(); j++) {
             if (pipes[edges[edgeId].p[j]].channel[t.channel] == -1) {
