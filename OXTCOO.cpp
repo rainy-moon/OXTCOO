@@ -421,15 +421,15 @@ int Channel_Communicate(vector<bool> possible_channel, int edgeno, int turns) {
 }
 
 int Add_Pipe(int& choosed_blocknode,
-             vector<int> blocknode,
-             vector<vector<bool> > block_possible_channel) {
+             vector<int>& blocknode,
+             vector<vector<bool> >& block_possible_channel,
+             int& index) {
     //? 排除nodeflag标记过的节点
     //? 连通度是以edge算的（没有排除已经被走过的节点？）
 
     //&修改新加边状态
     int bestNode = -1;
     // edges[nodes[blocknode[0]].e[0]].another(blocknode[0]);
-
     int thisNode = blocknode[0];
     int edgeId;
     for (int i = 0; i < blocknode.size(); i++) {
@@ -440,11 +440,13 @@ int Add_Pipe(int& choosed_blocknode,
                 if (bestNode == -1) {
                     bestNode = nextNode;
                     thisNode = blocknode[i];
+                    index = i;
                 } else if (nodes[nextNode].e.size() >
                            nodes[bestNode].e.size()) {
                     bestNode = nextNode;
                     thisNode = blocknode[i];
                     edgeId = *j;
+                    index = i;
                 }
             }
         }
@@ -475,6 +477,12 @@ int Add_Pipe(int& choosed_blocknode,
 void bfs_Find_Path(task& t, bool isbridge) {
     if (t.from == t.to) {
         return;
+    }
+    if (isbridge) {
+        for (int i = 0; i < nodes[t.from].e.size(); i++) {
+            nodeFlag[edges[nodes[t.from].e[i]].another(t.from)] = true;
+        }
+        nodeFlag[t.to] = false;
     }
     queue<int> q;           // BFS节点队列
     vector<int> blocknode;  // 阻塞节点记录
@@ -522,11 +530,13 @@ void bfs_Find_Path(task& t, bool isbridge) {
                     } else {
                         int communicate_channel =
                             Channel_Communicate(tempp, tempe[i], 1);
-                        if (communicate_channel <
-                            0) {  // 当前可用信道、边、协商伦次（深度）
+                        // 当前可用信道、边、协商伦次（深度）
+                        if (communicate_channel < 0) {
                             // 如果协商失败
-                            if (have_edge == 1)
-                                have_edge = 0;
+                            // if (have_edge == 1)
+                            // have_edge = 0;
+                            blocknode.push_back(q.front());
+                            blocknode_possible_channel.push_back(tempp);
                         } else {
                             // 协商成功
                             qpossible.front()[communicate_channel] = true;
@@ -556,9 +566,10 @@ void bfs_Find_Path(task& t, bool isbridge) {
         }
         // 当队列为空但是没有退出本函数说明没有找到目的地的路径，执行加边
         int choosed_blocknodeId;
-        int nextNode = Add_Pipe(
-            choosed_blocknodeId, blocknode,
-            blocknode_possible_channel);  // 返回加边阻塞节点在vector中的下标
+        int index = 0;
+        int nextNode =
+            Add_Pipe(choosed_blocknodeId, blocknode, blocknode_possible_channel,
+                     index);  // 返回加边阻塞节点在vector中的下标
         // 加边后从加了边的堵塞节点恢复搜索}
         if (nextNode == t.to) {
             Finded_Path(t, blocknode_possible_channel[choosed_blocknodeId]);
@@ -567,6 +578,9 @@ void bfs_Find_Path(task& t, bool isbridge) {
         q.push(nextNode);
         qpossible.push(blocknode_possible_channel[choosed_blocknodeId]);
         nodeFlag[nextNode] = true;
+        blocknode.erase(blocknode.begin() + index);
+        blocknode_possible_channel.erase(blocknode_possible_channel.begin() +
+                                         index);
     }
 }
 
@@ -578,8 +592,7 @@ void openArea(int type, int id) {
                 nodeFlag[i] = false;
             }
         }
-    }
-    if (type == 0) {
+    } else if (type == 0) {
         // openIsland
         for (int i = 0; i < islands[id].pointSet.size(); i++) {
             nodeFlag[islands[id].pointSet[i]] = false;  // ？
@@ -676,6 +689,7 @@ int main() {
     creatBridgeTree();
     // test for islands
     for (int i = 0; i < T; i++) {
+        // cout << i<<endl;
         divideTask(tasks[i]);
     }
     printResult();
